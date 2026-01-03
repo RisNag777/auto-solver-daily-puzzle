@@ -1,11 +1,15 @@
 from collections import Counter
-from typing import Iterable, List
-
-from puzzle_agent.constraints import Constraints
 
 
-def filter_candidates(words: Iterable[str],
-                      constraints: Constraints) -> List[str]:
+def filter_candidates(words, constraints):
+    """
+    Input:
+    words - Str denoting the words to be guessed
+    constraints - Updated constraints post the feedback from the first guess
+
+    Output:
+    valid_words - List with the validated words based on the constraints
+    """
     valid_words = []
 
     for word in words:
@@ -16,13 +20,15 @@ def filter_candidates(words: Iterable[str],
         wc = Counter(word)
 
         # Min counts
-        if any(wc[c] < constraints.min_count[
-                c] for c in constraints.min_count):
+        if any(  # fmt: skip
+            wc[c] < constraints.min_count[c] for c in constraints.min_count
+        ):
             continue
 
         # Max counts
-        if any(wc[c] > constraints.max_count[
-                c] for c in constraints.max_count):
+        if any(  # fmt: skip
+            wc[c] > constraints.max_count[c] for c in constraints.max_count
+        ):
             continue
 
         # Yellows

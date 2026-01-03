@@ -1,15 +1,18 @@
 from collections import Counter
-from typing import Tuple
 
 # 0 = gray
 # 1 = yellow
 # 2 = green
-Feedback = Tuple[int, int, int, int, int]
 
 
-def get_feedback(guess: str, solution: str) -> Feedback:
+def get_feedback(guess, solution):
     """
-    Compute Wordle-style feedback for a guess against the solution
+    Input:
+    guess - Str denoting the first guess
+    solution - Str denoting the solution of the puzzle
+
+    Output:
+    feedback - List denoting the feedback
     """
     feedback = [0] * 5
     solution_counts = Counter(solution)
@@ -26,4 +29,4 @@ def get_feedback(guess: str, solution: str) -> Feedback:
             feedback[i] = 1
             solution_counts[guess[i]] -= 1
 
-    return tuple(feedback)
+    return feedback
