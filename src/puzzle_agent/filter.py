@@ -1,7 +1,7 @@
 from collections import Counter
 from typing import Iterable, List
 
-from src.constraints import Constraints
+from puzzle_agent.constraints import Constraints
 
 
 def filter_candidates(words: Iterable[str],
