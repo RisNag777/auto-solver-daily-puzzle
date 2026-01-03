@@ -1,6 +1,6 @@
-from src.constraints import Constraints
-from src.filter import filter_candidates
-from src.game import get_feedback
+from puzzle_agent.constraints import Constraints
+from puzzle_agent.filter import filter_candidates
+from puzzle_agent.game import get_feedback
 
 
 def test_alley_balmy_case():
@@ -16,6 +16,6 @@ def test_alley_balmy_case():
     valid = filter_candidates(words, c)
 
     assert "balmy" in valid
-    assert "bally" in valid
+    assert "bally" not in valid
     assert "sally" not in valid  # too many 'l's
     assert "alley" not in valid  # 'a' in wrong position
