@@ -16,13 +16,13 @@ def filter_candidates(words: Iterable[str],
         wc = Counter(word)
 
         # Min counts
-        if any(wc[c] < constraints.min_count[c]
-               for c in constraints.min_count):
+        if any(wc[c] < constraints.min_count[
+                c] for c in constraints.min_count):
             continue
 
         # Max counts
-        if any(wc[c] > constraints.max_count[c]
-               for c in constraints.max_count):
+        if any(wc[c] > constraints.max_count[
+                c] for c in constraints.max_count):
             continue
 
         # Yellows

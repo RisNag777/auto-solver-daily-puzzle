@@ -29,10 +29,14 @@ class Constraints:
             elif fb == 1:
                 self.yellow_positions[letter].add(i)
             elif fb == 0:
-                # Only restrict positions if this letter occurs elsewhere as non-gray
+                # Only restrict positions if this letter occurs elsewhere as
+                # non-gray
                 if guess_counts[letter] > non_gray_counts.get(letter, 0):
-                    # Letter occurs in guess more times than in non-gray feedback
-                    self.max_count[letter] = min(self.max_count[letter], non_gray_counts.get(letter, 0))
+                    # Letter occurs in guess more times than in non-gray
+                    # feedback
+                    self.max_count[letter] = min(
+                        self.max_count[letter], non_gray_counts.get(letter, 0)
+                    )
 
         # Min counts
         for letter, count in non_gray_counts.items():
