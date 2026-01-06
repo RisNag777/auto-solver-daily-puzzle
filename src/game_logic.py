@@ -2,6 +2,7 @@ from collections import Counter
 from dotenv import load_dotenv
 
 import os
+import random
 
 load_dotenv()
 
@@ -19,15 +20,15 @@ def get_feedback(guess, solution):
     feedback = [0] * 5
     solution_counts = Counter(solution)
 
-    for i in range(5):
-        if guess[i] == solution[i]:
-            feedback[i] = 2
-            solution_counts[guess[i]] -= 1
+    for letter in range(5):
+        if guess[letter] == solution[letter]:
+            feedback[letter] = 2
+            solution_counts[guess[letter]] -= 1
 
-    for i in range(5):
-        if feedback[i] == 0 and solution_counts[guess[i]] > 0:
-            feedback[i] = 1
-            solution_counts[guess[i]] -= 1
+    for letter in range(5):
+        if feedback[letter] == 0 and solution_counts[guess[letter]] > 0:
+            feedback[letter] = 1
+            solution_counts[guess[letter]] -= 1
 
     return feedback
 
@@ -36,12 +37,12 @@ def cow_bull_absent(guess, feedback):
     cows = {}
     bulls = {}
     absent = set()
-    for f in range(len(feedback)):
-        char = guess[f]
-        if feedback[f] == 2:
-            bulls[char] = f
-        elif feedback[f] == 1:
-            cows[char] = f
+    for pos in range(len(feedback)):
+        char = guess[pos]
+        if feedback[pos] == 2:
+            bulls[char] = pos
+        elif feedback[pos] == 1:
+            cows[char] = pos
         else:
             absent.add(char)
     return cows, bulls, absent
@@ -70,15 +71,18 @@ def trim_list(guess, feedback, candidates):
     # Filter by absent letters (letters not in the word at all)
     if absent:
         candidates = filter_candidates(
-            candidates, lambda c: all(letter not in c for letter in absent)
+            candidates,
+            lambda candidate: all(  # fmt: off
+                letter not in candidate for letter in absent
+            ),
         )
 
     # Filter by bulls (letters in the correct position)
     if bulls:
         candidates = filter_candidates(
             candidates,
-            lambda c: all(  # fmt: off
-                c[pos] == letter for letter, pos in bulls.items()
+            lambda candidate: all(  # fmt: off
+                candidate[pos] == letter for letter, pos in bulls.items()
             ),
         )
 
@@ -86,10 +90,18 @@ def trim_list(guess, feedback, candidates):
     if cows:
         candidates = filter_candidates(
             candidates,
-            lambda c: all(
-                letter in c and c[pos] != letter  # fmt: off
+            lambda candidate: all(
+                letter in candidate and candidate[pos] != letter  # fmt: off
                 for letter, pos in cows.items()
             ),
         )
 
     return candidates
+
+
+def random_word_select(candidates, num_words=20):
+    random_word = []
+    for _ in range(num_words):
+        rng = random.randint(0, len(candidates))
+        random_word.append(candidates[rng])
+    return random_word
