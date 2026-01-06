@@ -47,30 +47,49 @@ def cow_bull_absent(guess, feedback):
     return cows, bulls, absent
 
 
+def filter_candidates(candidates, filter_condition):
+    """
+    Generic function to filter a list of candidates based on a condition.
+
+    Args:
+        candidates: List of candidate words to filter
+        filter_condition: Function that takes a candidate and returns True if
+                          it should be kept.
+
+    Returns:
+        Filtered list of candidates
+    """
+    return [  # fmt: off
+        candidate for candidate in candidates if filter_condition(candidate)
+    ]
+
+
 def trim_list(guess, feedback, candidates):
     cows, bulls, absent = cow_bull_absent(guess, feedback)
-    if len(absent) == 0:
-        abs_c = []
-        for candidate in candidates:
-            if all(letter not in candidate for letter in absent):
-                abs_c.append(candidate)
-    else:
-        abs_c = candidates
-    if bulls.keys() and not abs_c:
-        bull_c = []
-        for candidate in abs_c:
-            if all(candidate[pos] == letter for letter, pos in bulls.items()):
-                bull_c.append(candidate)
-    else:
-        bull_c = abs_c
-    if cows.keys() and not bull_c:
-        cow_c = []
-        for candidate in bull_c:
-            if all(
-                letter in candidate and candidate[pos] != letter
+
+    # Filter by absent letters (letters not in the word at all)
+    if absent:
+        candidates = filter_candidates(
+            candidates, lambda c: all(letter not in c for letter in absent)
+        )
+
+    # Filter by bulls (letters in the correct position)
+    if bulls:
+        candidates = filter_candidates(
+            candidates,
+            lambda c: all(  # fmt: off
+                c[pos] == letter for letter, pos in bulls.items()
+            ),
+        )
+
+    # Filter by cows (letters in the word but wrong position)
+    if cows:
+        candidates = filter_candidates(
+            candidates,
+            lambda c: all(
+                letter in c and c[pos] != letter  # fmt: off
                 for letter, pos in cows.items()
-            ):
-                cow_c.append(candidate)
-    else:
-        cow_c = bull_c
-    return cow_c
+            ),
+        )
+
+    return candidates
