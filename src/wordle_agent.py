@@ -60,7 +60,7 @@ def feedback_explanation(turn, guess, feedback):
     return fb_exp
 
 
-def wordle_agent(solution):
+def wordle_agent():
     """
     Run an interactive Wordle game session with AI-powered guess suggestions.
 
@@ -100,21 +100,25 @@ def wordle_agent(solution):
     """
     solution = input("Enter the solution word - ")
     history = {}
+    candidates = retrieve_word_list()
     for turn in range(6):
         guess = input("Enter your guess - ")
         feedback = get_feedback(guess, solution)
+        print("FEEDBACK: ", feedback)
         fb_exp = feedback_explanation(turn, guess, feedback)
         history[guess] = feedback
         if guess == solution:
-            Response = f"""You've done it!
+            Response = f"""
+            You've done it!
             Your guess {guess} was the solution after all!
             You finished in {turn + 1} turns!
             Your game played out as follows -
-            {history}"""
+            {history}
+            """
             print(Response)
             break
-        candidates = retrieve_word_list()
         candidates = trim_list(guess, feedback, candidates)
+        print("REMAINING CANDIDATES: ", len(candidates))
         random_candidates = random_word_select(candidates)
         wordle_words = ", ".join(random_candidates)
         Prompt = f"""You are acting as WordleBot.
