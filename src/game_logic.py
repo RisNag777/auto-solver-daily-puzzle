@@ -30,48 +30,45 @@ def retrieve_word_list():
         return candidates
 
 
-def get_feedback(guess, solution):
+def get_feedback(guess_list, solution_list):
     """
-    Generate feedback for a guess compared to the solution word.
+    Compute Wordle-style feedback for a guess against the solution.
 
-    Returns a list of 5 integers representing the feedback for each position:
-    - 2: Letter is in the correct position (bull)
-    - 1: Letter is in the word but wrong position (cow)
-    - 0: Letter is not in the word (absent)
+    For each character in the guess, returns:
+      - 2 if the letter is in the correct position (bull)
+      - 1 if the letter is in the solution but in a different position (cow)
+      - 0 if the letter is not in the solution (absent)
 
-    The function first identifies exact matches (bulls), then identifies
-    letters that exist in the solution but are in the wrong position (cows).
-    Each letter in the solution can only be matched once, preventing
-    over-counting of duplicate letters.
+    The function processes bulls first to ensure exact matches are prioritized,
+    then assigns cows without double-counting any letter in the solution.
 
     Args:
-        guess (str): The 5-letter word being guessed.
-        solution (str): The 5-letter solution word.
+        guess_list (list[str]): List of characters from the guessed word.
+        solution_list (list[str]): List of characters from the solution word.
 
     Returns:
-        list[int]: A list of 5 integers (0, 1, or 2) representing feedback
-                   for each position in the guess.
+        list[int]: Feedback list of length 5, each value being 0, 1, or 2.
 
     Example:
-        >>> get_feedback("CRANE", "CRANE")
+        >>> get_feedback(list("CRANE"), list("CRANE"))
         [2, 2, 2, 2, 2]
-        >>> get_feedback("CRANE", "PLANE")
+        >>> get_feedback(list("CRANE"), list("PLANE"))
         [0, 0, 2, 2, 2]
-        >>> get_feedback("CRANE", "REACT")
+        >>> get_feedback(list("CRANE"), list("REACT"))
         [1, 1, 2, 0, 1]
     """
     feedback = [0] * 5
-    solution_counts = Counter(solution)
+    solution_counts = Counter(solution_list)
 
     for letter in range(5):
-        if guess[letter] == solution[letter]:
+        if guess_list[letter] == solution_list[letter]:
             feedback[letter] = 2
-            solution_counts[guess[letter]] -= 1
+            solution_counts[guess_list[letter]] -= 1
 
     for letter in range(5):
-        if feedback[letter] == 0 and solution_counts[guess[letter]] > 0:
+        if feedback[letter] == 0 and solution_counts[guess_list[letter]] > 0:
             feedback[letter] = 1
-            solution_counts[guess[letter]] -= 1
+            solution_counts[guess_list[letter]] -= 1
 
     return feedback
 
@@ -121,7 +118,10 @@ def cow_bull_absent(guess, feedback):
         elif feedback[pos] == 1:
             cows[char] = pos
         else:
-            absent.add(char)
+            if char in bulls or char in cows:
+                continue
+            else:
+                absent.add(char)
     return cows, bulls, absent
 
 
