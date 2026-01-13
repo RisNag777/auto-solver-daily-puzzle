@@ -2,6 +2,8 @@ from collections import defaultdict
 from dotenv import load_dotenv
 from openai import OpenAI
 import os
+import random
+import re
 
 from src.game_logic import (
     get_feedback,
@@ -14,7 +16,7 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-def feedback_explanation(turn, guess, feedback):
+def feedback_explanation(turn, guess_list, feedback):
     """
     Generate a human-readable explanation of feedback from a Wordle guess.
 
@@ -39,15 +41,15 @@ def feedback_explanation(turn, guess, feedback):
         "It is currently turn 1 out of 6.\\nThe guessed word is CRANE.\\n..."
     """
     fb_exp = f"""It is currently turn {turn} out of 6.\nThe guessed word is
-    {guess}.\nThe feedback is {feedback}\n\n"""
+    {guess_list}.\nThe feedback is {feedback}\n\n"""
     absent, bulls, cows = [], defaultdict(list), defaultdict(list)
     for i in range(5):
         if feedback[i] == 0:
-            absent.append(guess[i])
+            absent.append(guess_list[i])
         if feedback[i] == 1:
-            cows[guess[i]].append(i)
+            cows[guess_list[i]].append(i)
         if feedback[i] == 2:
-            bulls[guess[i]].append(i)
+            bulls[guess_list[i]].append(i)
 
     fb_exp += f"""- The letters {', '.join(absent)} are not in the
     solution (0).\n"""
@@ -58,6 +60,33 @@ def feedback_explanation(turn, guess, feedback):
         fb_exp += f"""- The letter {char} is in the solution but not in the
         correct position (1). Anywhere other than index {pos}.\n"""
     return fb_exp
+
+
+def extract_guess(ai_response_content):
+    patterns = [
+        r"guess\s*:\s*['\"]?([a-zA-Z]{5})['\"]?",  # "guess: baker"
+        r"guess['\"]?\s*:\s*['\"]([a-zA-Z]{5})['\"]",  # 'guess': 'baker'
+        r"['\"]guess['\"]\s*:\s*['\"]([a-zA-Z]{5})['\"]",  # "guess": "baker"
+    ]
+
+    guess_object = None
+    content_to_search = ai_response_content
+    code_block_match = re.search(
+        r"```(?:json|python)?\s*(.*?)```",
+        content_to_search,  # fmt: off
+        re.DOTALL | re.IGNORECASE,
+    )
+    if code_block_match:
+        content_to_search = code_block_match.group(1)
+
+    for pattern in patterns:
+        guess_match = re.search(
+            pattern, content_to_search, re.IGNORECASE | re.MULTILINE
+        )
+        if guess_match:
+            guess_object = guess_match.group(1).lower()
+            break
+    return guess_object
 
 
 def wordle_agent():
@@ -98,14 +127,18 @@ def wordle_agent():
         [AI suggests next guess based on feedback]
         ...
     """
-    solution = input("Enter the solution word - ")
     history = {}
     candidates = retrieve_word_list()
+    solution = random.choice(candidates)
+    print("SOLUTION: ", solution)
+    guess = random.choice([w for w in candidates if w != solution])
     for turn in range(6):
-        guess = input("Enter your guess - ")
-        feedback = get_feedback(guess, solution)
+        guess_list = list(guess)
+        print("GUESS: ", guess)
+        solution_list = list(solution)
+        feedback = get_feedback(guess_list, solution_list)
         print("FEEDBACK: ", feedback)
-        fb_exp = feedback_explanation(turn, guess, feedback)
+        fb_exp = feedback_explanation(turn, guess_list, feedback)
         history[guess] = feedback
         if guess == solution:
             Response = f"""
@@ -126,6 +159,8 @@ def wordle_agent():
         solution.
         The user needs to guess what the solution is and they have 6 guesses
         to do so.
+        You will receive a 5 letter word as the previous guess but in the
+        format of a list with 5 characters in it
         Your aim is to help the user get to the solution quickly by giving
         the next guess that the user should try.
         The best case scenario is if your guess exactly matches the solution.
@@ -133,7 +168,8 @@ def wordle_agent():
         <data_definition>
         For a given guess, you will be provided with the feedback.
         Feedback is a list containing 5 items that are 0, 1 or 2.
-        0 implies that the corresponding letter not present in the solution.
+        0 implies that the corresponding letter is not present in the
+        solution.
         1 implies that the corresponding letter is present at a different
         position in the solution.
         2 implies that the corresponding letter is present in the solution
@@ -152,17 +188,17 @@ def wordle_agent():
         'e' is in the correct position.
         </data_definition>
 
-        The current user guess is {guess} and feedback is {feedback}, which
-        means {fb_exp}.
+        The current user guess is {guess_list} and feedback is {feedback},
+        which means {fb_exp}.
         Given that there could be infinite guesses, there is a corpus
         containing words used in wordle.
         There is a tool to eliminate all words that do not meet the feedback
         criteria from this corpus.
 
         Example
-        Words like 'arrow' is removed from the corpus because 'a' should not
-        be present, 'e' should be in the 4th position, 'd' and 'i' should be
-        present
+        Words like 'arrow' and 'weary' are removed from the corpus because
+        'a' should not be present, 'e' should be in the 4th position, 'd' and
+        'i' should be present
 
         <choosing_a_good_guess>
         1. These 20 words {wordle_words} are randomly chosen from the
@@ -185,26 +221,56 @@ def wordle_agent():
         guesses.
         </guess_rules>
 
-        <reason>
-        1. Include feedback for your guess.
-        2. Explain how your guess satisfies the guess rules.
-        </reason>
-
         <response_format>
         guess: your chosen guess should be a 5 letter word that matches all
         the above constraints.
-        reason: explain why you chose this guess
+        <response_format>
 
         Strict absolute constraints you cannot miss
         1. Your guess should STRICTLY SATISFY the rules above.
         2. Your guess needs to be a real English word
         3. Your guess HAS to be a 5 letter word
         """
+        valid_guess = True
         messages = [{"role": "user", "content": guess}]
         messages.append({"role": "system", "content": Prompt})
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini", messages=messages, temperature=0
-        )
-        ai_response_content = completion.choices[0].message.content
-        messages.append({"role": "assistant", "content": ai_response_content})
-        print(ai_response_content)
+        valid_check = 0
+        while valid_guess:
+            valid_check += 1
+            completion = client.chat.completions.create(
+                model="gpt-4o-mini", messages=messages, temperature=0
+            )
+            ai_response_content = completion.choices[0].message.content
+            messages.append(
+                {
+                    "role": "assistant",  # fmt: off
+                    "content": ai_response_content,
+                }  # fmt: off
+            )
+            print(ai_response_content)
+            tmp_guess = extract_guess(ai_response_content)
+            print("AGENT GUESS: ", tmp_guess)
+            if tmp_guess in candidates:
+                guess = tmp_guess
+                break
+            else:
+                if valid_check == 5:
+                    guess = random.choice(
+                        [w for w in candidates if w != solution]  # fmt: off
+                    )
+                    print("Agent unable to pick valid guess.")
+                    print(f"Random guess: {guess}")
+                    break
+                else:
+                    invalid_guess_prompt = f"""Your guess {tmp_guess} is not
+                    valid as it does not satisfy all the historical
+                    constraints. For your reference, here are the historical
+                    constraints - {history}.
+                    Please make sure that the guess that you select satisfies
+                    all the past constraints."""
+                    messages.append(
+                        {
+                            "role": "system",  # fmt: off
+                            "content": invalid_guess_prompt,
+                        }  # fmt: off
+                    )
