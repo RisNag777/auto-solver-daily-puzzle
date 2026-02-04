@@ -112,47 +112,62 @@ class TestCowBullAbsent:
         """Test categorization when all letters are bulls."""
         guess = "CRANE"
         feedback = [2, 2, 2, 2, 2]
-        cows, bulls, absent = cow_bull_absent(guess, feedback)
-        assert bulls == {"C": 0, "R": 1, "A": 2, "N": 3, "E": 4}
+        cows, bulls, absent, excluded = cow_bull_absent(guess, feedback)
+        assert bulls == {"C": [0], "R": [1], "A": [2], "N": [3], "E": [4]}
         assert cows == {}
         assert absent == set()
+        assert excluded == []
 
     def test_all_absent(self):
         """Test categorization when all letters are absent."""
         guess = "ABCDE"
         feedback = [0, 0, 0, 0, 0]
-        cows, bulls, absent = cow_bull_absent(guess, feedback)
+        cows, bulls, absent, excluded = cow_bull_absent(guess, feedback)
         assert bulls == {}
         assert cows == {}
         assert absent == {"A", "B", "C", "D", "E"}
+        assert excluded == []
 
     def test_all_cows(self):
         """Test categorization when all letters are cows."""
         guess = "CRANE"
         feedback = [1, 1, 1, 1, 1]
-        cows, bulls, absent = cow_bull_absent(guess, feedback)
+        cows, bulls, absent, excluded = cow_bull_absent(guess, feedback)
         assert bulls == {}
-        assert cows == {"C": 0, "R": 1, "A": 2, "N": 3, "E": 4}
+        assert cows == {"C": [0], "R": [1], "A": [2], "N": [3], "E": [4]}
         assert absent == set()
+        assert excluded == []
 
     def test_mixed_categorization(self):
         """Test categorization with mix of bulls, cows, and absent."""
         guess = "CRANE"
         feedback = [1, 1, 2, 0, 1]
-        cows, bulls, absent = cow_bull_absent(guess, feedback)
-        assert bulls == {"A": 2}
-        assert cows == {"C": 0, "R": 1, "E": 4}
+        cows, bulls, absent, excluded = cow_bull_absent(guess, feedback)
+        assert bulls == {"A": [2]}
+        assert cows == {"C": [0], "R": [1], "E": [4]}
         assert absent == {"N"}
+        assert excluded == []
 
     def test_duplicate_letters(self):
         """Test categorization with duplicate letters."""
         guess = "EERIE"
         feedback = [1, 0, 1, 0, 1]
-        cows, bulls, absent = cow_bull_absent(guess, feedback)
-        # Note: last occurrence of E overwrites first in dict
+        cows, bulls, absent, excluded = cow_bull_absent(guess, feedback)
         assert "E" in cows
         assert "I" in absent
         assert "R" in cows
+        # E at positions 1 and 3 got 0 but E is in word -> excluded_positions
+        assert ("E", 1) in excluded
+        assert ("E", 3) in excluded
+
+    def test_duplicate_letter_bull_and_zero(self):
+        """Test banns vs pawns: n at pos 2 gets 0, n at pos 3 gets 2."""
+        guess = "banns"
+        feedback = [0, 2, 0, 2, 2]
+        cows, bulls, absent, excluded = cow_bull_absent(guess, feedback)
+        assert bulls == {"a": [1], "n": [3], "s": [4]}
+        assert absent == {"b"}
+        assert ("n", 2) in excluded
 
 
 class TestFilterCandidates:
@@ -262,6 +277,17 @@ class TestTrimList:
         result = trim_list("CRANE", feedback, candidates)
         assert result == []
 
+    def test_trim_duplicate_letter_excluded_position(self):
+        """Test banns vs pawns: n at pos 2 got 0, must exclude words with n at 2."""
+        candidates = ["pawns", "fawns", "banns", "yawns", "panns"]
+        feedback = [0, 2, 0, 2, 2]  # banns vs pawns
+        result = trim_list("banns", feedback, candidates)
+        assert "pawns" in result
+        assert "fawns" in result
+        assert "yawns" in result
+        assert "banns" not in result  # has b (absent)
+        assert "panns" not in result  # has n at pos 2 (excluded_position)
+
 
 class TestRandomWordSelect:
     """Tests for random_word_select function."""
@@ -301,7 +327,7 @@ class TestRandomWordSelect:
         assert result == ["CRANE", "CRANE", "CRANE", "CRANE", "CRANE"]
 
     def test_select_empty_candidates(self):
-        """Test selecting from empty candidate list."""
+        """Test selecting from empty candidate list returns empty list."""
         candidates = []
-        with pytest.raises(ValueError):
-            random_word_select(candidates, num_words=1)
+        result = random_word_select(candidates, num_words=1)
+        assert result == []

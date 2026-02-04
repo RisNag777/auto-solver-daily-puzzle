@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, defaultdict
 from dotenv import load_dotenv
 
 import os
@@ -90,39 +90,47 @@ def cow_bull_absent(guess, feedback):
                               position, typically from get_feedback().
 
     Returns:
-        tuple[dict[str, int], dict[str, int], set[str]]: A tuple containing:
-            - cows: Dictionary mapping letters to their position in the guess
-                    where they appear but are in the wrong position.
-            - bulls: Dictionary mapping letters to their position in the guess
-                     where they are in the correct position.
-            - absent: Set of letters that are not in the solution word.
+        tuple[dict[str, list[int]], dict[str, list[int]], set[str], list[tuple[str, int]]]:
+            - cows: Letter -> positions where it appears but wrong position.
+            - bulls: Letter -> positions where it is in the correct position.
+            - absent: Letters not in the solution word.
+            - excluded_positions: (letter, pos) where letter got 0 but is in word.
 
     Example:
         >>> guess = "CRANE"
         >>> feedback = [1, 1, 2, 0, 1]
-        >>> cows, bulls, absent = cow_bull_absent(guess, feedback)
+        >>> cows, bulls, absent, excluded = cow_bull_absent(guess, feedback)
         >>> bulls
-        {'R': 2}
+        {'R': [2]}
         >>> cows
-        {'C': 0, 'A': 1, 'E': 4}
+        {'C': [0], 'A': [1], 'E': [4]}
         >>> absent
         {'N'}
     """
-    cows = {}
-    bulls = {}
+    cows = defaultdict(list)
+    bulls = defaultdict(list)
     absent = set()
+    excluded_positions = []  # (letter, pos) where letter got 0 but is in word
+    # First pass: collect bulls and cows (support multiple positions per letter)
     for pos in range(len(feedback)):
         char = guess[pos]
         if feedback[pos] == 2:
-            bulls[char] = pos
+            bulls[char].append(pos)
         elif feedback[pos] == 1:
-            cows[char] = pos
-        else:
+            cows[char].append(pos)
+    # Second pass: add to absent only if letter has feedback 0 and is not
+    # in bulls/cows (handles duplicates: e.g. "ember" vs "vomer" where
+    # first 'e' gets 0 because second 'e' consumed the solution's only 'e')
+    # Also track excluded_positions: letter got 0 but is in word, so it must
+    # not be at this position (e.g. "banns" vs "pawns" - n at pos 2 got 0)
+    for pos in range(len(feedback)):
+        char = guess[pos]
+        if feedback[pos] == 0:
             if char in bulls or char in cows:
-                continue
+                excluded_positions.append((char, pos))
             else:
                 absent.add(char)
-    return cows, bulls, absent
+    return dict(cows), dict(bulls), absent, excluded_positions
 
 
 def filter_candidates(candidates, filter_condition):
@@ -169,7 +177,7 @@ def trim_list(guess, feedback, candidates):
         >>> trim_list("CRANE", feedback, candidates)
         ['PLANE']
     """
-    cows, bulls, absent = cow_bull_absent(guess, feedback)
+    cows, bulls, absent, excluded_positions = cow_bull_absent(guess, feedback)
 
     # Filter by absent letters (letters not in the word at all)
     if absent:
@@ -184,8 +192,10 @@ def trim_list(guess, feedback, candidates):
     if bulls:
         candidates = filter_candidates(
             candidates,
-            lambda candidate: all(  # fmt: off
-                candidate[pos] == letter for letter, pos in bulls.items()
+            lambda candidate: all(
+                candidate[pos] == letter
+                for letter, positions in bulls.items()
+                for pos in positions
             ),
         )
 
@@ -194,8 +204,17 @@ def trim_list(guess, feedback, candidates):
         candidates = filter_candidates(
             candidates,
             lambda candidate: all(
-                letter in candidate and candidate[pos] != letter  # fmt: off
-                for letter, pos in cows.items()
+                letter in candidate and all(candidate[pos] != letter for pos in positions)
+                for letter, positions in cows.items()
+            ),
+        )
+
+    # Filter by excluded positions (duplicate letter got 0 - must not be at this pos)
+    if excluded_positions:
+        candidates = filter_candidates(
+            candidates,
+            lambda candidate: all(
+                candidate[pos] != letter for letter, pos in excluded_positions
             ),
         )
 
@@ -223,6 +242,8 @@ def random_word_select(candidates, num_words=20):
         >>> random_word_select(candidates, num_words=3)
         ['PLANE', 'CRANE', 'PLANE']
     """
+    if not candidates:
+        return []
     random_word = []
     for _ in range(num_words):
         rng = random.randint(0, len(candidates) - 1)

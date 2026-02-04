@@ -222,7 +222,7 @@ def wordle_agent():
         </guess_rules>
 
         <response_format>
-        guess: your chosen guess should be a 5 letter word that matches all
+        AGENT GUESS: your chosen guess should be a 5 letter word that matches all
         the above constraints.
         <response_format>
 
@@ -249,15 +249,12 @@ def wordle_agent():
             )
             print(ai_response_content)
             tmp_guess = extract_guess(ai_response_content)
-            print("AGENT GUESS: ", tmp_guess)
             if tmp_guess in candidates:
                 guess = tmp_guess
                 break
             else:
                 if valid_check == 5:
-                    guess = random.choice(
-                        [w for w in candidates if w != solution]  # fmt: off
-                    )
+                    guess = random.choice(candidates)
                     print("Agent unable to pick valid guess.")
                     print(f"Random guess: {guess}")
                     break
@@ -274,3 +271,4 @@ def wordle_agent():
                             "content": invalid_guess_prompt,
                         }  # fmt: off
                     )
+                    print(f"{tmp_guess} does not satisfy all the historical constraints.")
