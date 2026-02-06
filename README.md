@@ -2,7 +2,7 @@
 
 An AI-powered agent that automatically solves Wordle and similar daily puzzle games using OpenAI's GPT-4o-mini. The agent intelligently filters candidate words based on game feedback and uses AI to suggest optimal guesses.
 
-## 🎯 Features
+## Features
 
 - **AI-Powered Guessing**: Uses OpenAI's GPT-4o-mini to generate intelligent word guesses
 - **Smart Filtering**: Automatically filters candidate words based on feedback (bulls, cows, and absent letters)
@@ -11,13 +11,13 @@ An AI-powered agent that automatically solves Wordle and similar daily puzzle ga
 - **Comprehensive Testing**: Full test suite for game logic functions
 - **Duplicate Letter Handling**: Properly handles edge cases with duplicate letters in guesses and solutions
 
-## 📋 Prerequisites
+## Prerequisites
 
 - Python 3.7 or higher
 - OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
-- A word list file (`data/words.txt`) containing valid 5-letter words (one per line)
+- A word list file ([I used this one](https://gist.github.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b)) containing valid 5-letter words (one per line)
 
-## 🚀 Installation
+## Installation
 
 1. **Clone the repository**:
    ```bash
@@ -40,7 +40,7 @@ An AI-powered agent that automatically solves Wordle and similar daily puzzle ga
 4. **Verify word list**:
    Ensure `data/words.txt` exists and contains valid 5-letter words (one per line).
 
-## 💻 Usage
+## Usage
 
 ### Running the Wordle Agent
 
@@ -105,7 +105,7 @@ Your guess crane was the solution after all!
 You finished in 4 turns!
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 auto-solver-daily-puzzle-1/
@@ -124,7 +124,7 @@ auto-solver-daily-puzzle-1/
 └── README.md             # This file
 ```
 
-## 🧪 Testing
+## Testing
 
 Run the test suite using pytest:
 
@@ -145,7 +145,7 @@ The test suite covers:
 - Letter categorization (bulls, cows, absent)
 - Random word selection
 
-## 🔧 Core Functions
+## Core Functions
 
 ### `game_logic.py`
 
@@ -161,7 +161,7 @@ The test suite covers:
 - **`feedback_explanation(turn, guess_list, feedback)`**: Generates human-readable feedback explanation
 - **`extract_guess(ai_response_content)`**: Extracts guess from AI response using regex patterns
 
-## 📦 Dependencies
+## Dependencies
 
 - **openai**: OpenAI API client for GPT-4o-mini
 - **python-dotenv**: Environment variable management
@@ -171,7 +171,7 @@ The test suite covers:
 
 See `requirements.txt` for specific versions.
 
-## 🎮 Game Rules
+## Game Rules
 
 The agent follows standard Wordle rules:
 
@@ -180,7 +180,7 @@ The agent follows standard Wordle rules:
 3. **Absent (0)**: Letters not in the word must not appear in any future guesses
 4. **Duplicate Letters**: Handles cases where a letter appears multiple times in guess or solution
 
-## 🔍 How Feedback Works
+## How Feedback Works
 
 Example: Guess = "CRANE", Solution = "PLANE"
 
@@ -192,15 +192,11 @@ Example: Guess = "CRANE", Solution = "PLANE"
 
 Feedback: `[0, 0, 2, 2, 2]`
 
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-## 📄 License
+## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -220,7 +216,7 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
    - Ensure you're running from the project root directory
    - Verify all dependencies are installed: `pip install -r requirements.txt`
 
-## 🔮 Future Enhancements
+## Future Enhancements
 
 Potential improvements:
 - Support for other daily puzzle games (Quordle, Octordle, etc.)
@@ -230,7 +226,7 @@ Potential improvements:
 - Custom word list support
 - Difficulty levels
 
-## 📝 Notes
+## Notes
 
 - The agent uses GPT-4o-mini with temperature=0 for deterministic results
 - The word list should contain only valid 5-letter English words
@@ -239,4 +235,4 @@ Potential improvements:
 
 ---
 
-**Happy Wordling! 🎉**
+**Happy Wordling!**
