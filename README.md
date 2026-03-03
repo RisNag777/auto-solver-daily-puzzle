@@ -2,6 +2,8 @@
 
 An AI-powered agent that automatically solves Wordle and similar daily puzzle games using OpenAI's GPT-4o-mini. The agent intelligently filters candidate words based on game feedback and uses AI to suggest optimal guesses.
 
+> 💡 **Read the full blog post**: [What Building a Wordle Solver Taught Me About AI Agents](blog_post.md) - A deep dive into the architecture, design decisions, and lessons learned from building this agent.
+
 ## 🎯 Features
 
 - **AI-Powered Guessing**: Uses OpenAI's GPT-4o-mini to generate intelligent word guesses
@@ -21,7 +23,7 @@ An AI-powered agent that automatically solves Wordle and similar daily puzzle ga
 
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/RisNag777/auto-solver-daily-puzzle-1.git
    cd auto-solver-daily-puzzle-1
    ```
 
@@ -68,6 +70,8 @@ python main.py
 
 ### How It Works
 
+This agent treats Wordle as a **belief-state search problem** rather than a pure language modeling task. The system maintains a belief state (candidate word list) and updates it based on feedback, using the LLM as a heuristic policy to propose guesses.
+
 1. **Game Initialization**: The agent randomly selects a solution word from the word list and starts with a random initial guess.
 
 2. **Feedback Generation**: For each guess, the agent receives feedback:
@@ -75,21 +79,27 @@ python main.py
    - `1` (Cow): Letter is in the word but wrong position
    - `0` (Absent): Letter is not in the word
 
-3. **Candidate Filtering**: The agent filters the word list based on feedback:
+3. **Belief State Update**: The agent filters the word list based on feedback:
    - Removes words containing absent letters
    - Keeps only words with letters in correct positions (bulls)
    - Ensures letters marked as cows appear in different positions
-   - Handles duplicate letters correctly
+   - Handles duplicate letters correctly (including excluded positions)
 
 4. **AI-Guided Guessing**: The agent uses GPT-4o-mini to suggest the next guess based on:
-   - Filtered candidate words
+   - Filtered candidate words (belief state)
    - Historical feedback constraints
    - Common letter patterns and vowel usage
    - Wordle game rules
 
-5. **Validation**: The agent validates AI suggestions against the filtered candidate list and retries if invalid.
+5. **Validation & Retry Loop**: The agent validates AI suggestions against the filtered candidate list:
+   - Extracts the guess from the LLM's response (handles various formats)
+   - Checks if the guess exists in the valid candidates
+   - Retries up to 5 times with error feedback if invalid
+   - Falls back to a random valid candidate if all retries fail
 
 6. **Victory**: The game ends when the solution is found or after 6 turns.
+
+**Key Architecture Principle**: The system separates deterministic game logic (constraint enforcement) from the stochastic LLM policy (guess proposal). This ensures correctness while leveraging the LLM's ability to propose linguistically plausible guesses.
 
 ### Example Output
 
@@ -179,6 +189,8 @@ The agent follows standard Wordle rules:
 2. **Cows (1)**: Letters in the word but wrong position must appear in a different position until they become bulls
 3. **Absent (0)**: Letters not in the word must not appear in any future guesses
 4. **Duplicate Letters**: Handles cases where a letter appears multiple times in guess or solution
+   - Uses a two-pass algorithm to correctly assign feedback
+   - Tracks excluded positions (letters that got `0` but exist elsewhere in the word)
 
 ## 🔍 How Feedback Works
 
@@ -236,6 +248,17 @@ Potential improvements:
 - The word list should contain only valid 5-letter English words
 - The agent automatically handles edge cases like duplicate letters
 - All guesses are validated against the filtered candidate list
+- The system implements a **propose → validate → retry → fallback** pattern to ensure reliability
+
+## 🏗️ Architecture Philosophy
+
+This project demonstrates a key principle in building AI agents: **separate deterministic logic from stochastic policy**.
+
+- **Deterministic Core** (`game_logic.py`): All game rules, feedback computation, and constraint enforcement happen in pure, testable Python code
+- **Stochastic Policy** (`wordle_agent.py`): The LLM acts as a heuristic guess proposer, not a rule enforcer
+- **Validation Layer**: Every LLM proposal is validated against deterministic constraints before being accepted
+
+This architecture ensures that the agent always plays valid Wordle moves, even when the LLM suggests invalid guesses. The intelligence emerges from the composition of these components, not from any single piece.
 
 ---
 
